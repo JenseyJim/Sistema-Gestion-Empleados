@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HRPro - Sistema de Gestión de Empleados</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<!-- Login Screen -->
+<div id="loginScreen" class="login-container">
+  <div class="login-background">
+    <div class="login-overlay"></div>
+  </div>
+  <div class="login-content">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo">
+          <i class="fas fa-users-cog"></i>
+          <h1>HRPro</h1>
+        </div>
+        <p>Sistema Profesional de Gestión de Empleados</p>
+      </div>
+
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label for="loginUser">Usuario</label>
+          <div class="input-group">
+            <i class="fas fa-user"></i>
+            <input type="text" id="loginUser" required placeholder="admin / supervisor / empleado"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword">Contraseña</label>
+          <div class="input-group">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="loginPassword" required placeholder="admin123 / super123 / emp123"/>
+          </div>
+        </div>
+
+        <button type="submit" class="login-btn">
+          <span>Iniciar Sesión</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+        <p class="text-center mt-2" style="color:#6b7280; font-size:0.85rem">El rol se detecta automáticamente según el usuario de prueba.</p>
+      </form>
+
+      <div class="login-demo">
+        <h6>Usuarios de Demostración:</h6>
+        <div class="demo-users">
+          <span class="demo-user" onclick="fillDemo('admin','admin123')">
+            <i class="fas fa-crown"></i> Admin
+          </span>
+          <span class="demo-user" onclick="fillDemo('supervisor','super123')">
+            <i class="fas fa-user-tie"></i> Supervisor
+          </span>
+          <span class="demo-user" onclick="fillDemo('empleado','emp123')">
+            <i class="fas fa-user"></i> Empleado
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Application -->
+<div id="mainApp" class="main-app d-none">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <i class="fas fa-users-cog"></i>
+        <span>HRPro</span>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+
+    <div class="sidebar-menu">
+      <div class="menu-section">
+        <h6>Principal</h6>
+        <ul>
+          <li class="menu-item active" data-page="dashboard">
+            <i class="fas fa-chart-pie"></i>
+            <span>Dashboard</span>
+          </li>
+          <li class="menu-item" data-page="empleados">
+            <i class="fas fa-users"></i>
+            <span>Empleados</span>
+            <span class="badge" id="empleadosBadge">0</span>
+          </li>
+          <li class="menu-item" data-page="nomina">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>Nómina</span>
+          </li>
+          <li class="menu-item" data-page="vacaciones">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Vacaciones</span>
+            <span class="badge pending" id="vacacionesBadge">0</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="menu-section">
+        <h6>Análisis</h6>
+        <ul>
+          <li class="menu-item" data-page="reportes">
+            <i class="fas fa-chart-bar"></i>
+            <span>Reportes</span>
+          </li>
+          <li class="menu-item" data-page="analytics">
+            <i class="fas fa-analytics"></i>
+            <span>Analytics</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="menu-section">
+        <h6>Sistema</h6>
+        <ul>
+          <li class="menu-item" data-page="configuracion">
+            <i class="fas fa-cog"></i>
+            <span>Configuración</span>
+          </li>
+          <li class="menu-item" data-page="perfil">
+            <i class="fas fa-user-circle"></i>
+            <span>Mi Perfil</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">
+          <i class="fas fa-user"></i>
+        </div>
+        <div class="user-details">
+          <span class="user-name" id="currentUserName">Usuario</span>
+          <span class="user-role" id="currentUserRole">Rol</span>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header -->
+    <header class="content-header">
+      <div class="header-left">
+        <h1 id="pageTitle">Dashboard</h1>
+        <p id="pageSubtitle">Resumen general del sistema</p>
+      </div>
+      <div class="header-right">
+        <div class="header-actions">
+          <button class="btn-icon" id="notificationsBtn">
+            <i class="fas fa-bell"></i>
+            <span class="notification-dot"></span>
+          </button>
+          <button class="btn-icon" id="searchBtn">
+            <i class="fas fa-search"></i>
+          </button>
+          <div class="user-menu">
+            <button class="user-menu-btn">
+              <div class="user-avatar-small">
+                <i class="fas fa-user"></i>
+              </div>
+              <i class="fas fa-chevron-down"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="page-content">
+      <!-- Dashboard -->
+      <div id="dashboard" class="page active">
+        <div class="stats-grid">
+          <div class="stat-card primary">
+            <div class="stat-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+              <h3 id="totalEmpleadosStat">0</h3>
+              <p>Total Empleados</p>
+              <span class="stat-change positive">
+                <i class="fas fa-arrow-up"></i> +12%
+              </span>
+            </div>
+          </div>
+
+          <div class="stat-card success">
+            <div class="stat-icon">
+              <i class="fas fa-user-check"></i>
+            </div>
+            <div class="stat-content">
+              <h3 id="empleadosActivosStat">0</h3>
+              <p>Empleados Activos</p>
+              <span class="stat-change positive">
+                <i class="fas fa-arrow-up"></i> +8%
+              </span>
+            </div>
+          </div>
+
+          <div class="stat-card warning">
+            <div class="stat-icon">
+              <i class="fas fa-calendar-times"></i>
+            </div>
+            <div class="stat-content">
+              <h3 id="solicitudesPendientesStat">0</h3>
+              <p>Solicitudes Pendientes</p>
+              <span class="stat-change neutral">
+                <i class="fas fa-minus"></i> 0%
+              </span>
+            </div>
+          </div>
+
+          <div class="stat-card info">
+            <div class="stat-icon">
+              <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stat-content">
+              <h3 id="nominaTotalStat">RD$0</h3>
+              <p>Nómina Total</p>
+              <span class="stat-change positive">
+                <i class="fas fa-arrow-up"></i> +5%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h5>Empleados Recientes</h5>
+              <button class="btn-sm" onclick="navigateTo('empleados')">Ver todos</button>
+            </div>
+            <div class="card-content">
+              <div id="empleadosRecientes" class="recent-list">
+                <div class="empty-state">
+                  <i class="fas fa-users"></i>
+                  <p>No hay empleados registrados</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h5>Solicitudes de Vacaciones</h5>
+              <button class="btn-sm" onclick="navigateTo('vacaciones')">Ver todas</button>
+            </div>
+            <div class="card-content">
+              <div id="solicitudesRecientes" class="recent-list">
+                <div class="empty-state">
+                  <i class="fas fa-calendar-alt"></i>
+                  <p>No hay solicitudes pendientes</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-card full-width">
+            <div class="card-header">
+              <h5>Distribución por Departamento</h5>
+              <div class="card-actions">
+                <button class="btn-icon">
+                  <i class="fas fa-download"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-content">
+              <div id="departamentosChart" class="chart-container">
+                <div class="empty-state">
+                  <i class="fas fa-chart-pie"></i>
+                  <p>No hay datos para mostrar</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empleados -->
+      <div id="empleados" class="page">
+        <div class="page-actions">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Buscar empleados..." id="searchEmpleados"/>
+          </div>
+          <div class="filter-group">
+            <select id="filterDepartamento">
+              <option value="">Todos los departamentos</option>
+            </select>
+            <select id="filterEstado">
+              <option value="">Todos los estados</option>
+              <option value="Activo">Activos</option>
+              <option value="Inactivo">Inactivos</option>
+            </select>
+          </div>
+          <button class="btn-primary" onclick="openModal('empleadoModal')">
+            <i class="fas fa-plus"></i>
+            Nuevo Empleado
+          </button>
+        </div>
+
+        <div class="data-table-container">
+          <table class="data-table" id="empleadosTable">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAll"/></th>
+                <th>Empleado</th>
+                <th>Cédula</th>
+                <th>Departamento</th>
+                <th>Puesto</th>
+                <th>Sueldo</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="empleadosTableBody">
+              <tr class="empty-row">
+                <td colspan="8">
+                  <div class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <h6>No hay empleados registrados</h6>
+                    <p>Comienza agregando tu primer empleado</p>
+                    <button class="btn-primary" onclick="openModal('empleadoModal')">
+                      <i class="fas fa-plus"></i>
+                      Agregar Empleado
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Nómina -->
+      <div id="nomina" class="page">
+        <div class="page-actions">
+          <div class="period-selector">
+            <label>Período:</label>
+            <select id="nominaPeriodo">
+              <option value="actual">Mes Actual</option>
+              <option value="anterior">Mes Anterior</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </div>
+          <button class="btn-success" onclick="procesarNomina()">
+            <i class="fas fa-calculator"></i>
+            Procesar Nómina
+          </button>
+          <button class="btn-info" onclick="exportarNomina()">
+            <i class="fas fa-download"></i>
+            Exportar
+          </button>
+        </div>
+
+        <div class="nomina-summary">
+          <div class="summary-card">
+            <h6>Total Bruto</h6>
+            <h3 id="totalBruto">RD$0</h3>
+          </div>
+          <div class="summary-card">
+            <h6>Total Descuentos</h6>
+            <h3 id="totalDescuentos">RD$0</h3>
+          </div>
+          <div class="summary-card">
+            <h6>Total Neto</h6>
+            <h3 id="totalNeto">RD$0</h3>
+          </div>
+          <div class="summary-card">
+            <h6>Empleados</h6>
+            <h3 id="totalEmpleadosNomina">0</h3>
+          </div>
+        </div>
+
+        <div class="data-table-container">
+          <table class="data-table" id="nominaTable">
+            <thead>
+              <tr>
+                <th>Empleado</th>
+                <th>Sueldo Base</th>
+                <th>Bonificaciones</th>
+                <th>Descuentos</th>
+                <th>Sueldo Neto</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="nominaTableBody">
+              <tr class="empty-row">
+                <td colspan="7">
+                  <div class="empty-state">
+                    <i class="fas fa-calculator"></i>
+                    <h6>No hay nómina procesada</h6>
+                    <p>Procesa la nómina para ver los cálculos</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Vacaciones -->
+      <div id="vacaciones" class="page">
+        <div class="page-actions">
+          <div class="filter-group">
+            <select id="filterEstadoVacaciones">
+              <option value="">Todos los estados</option>
+              <option value="Pendiente">Pendientes</option>
+              <option value="Aprobado">Aprobadas</option>
+              <option value="Rechazado">Rechazadas</option>
+            </select>
+          </div>
+          <button class="btn-primary" onclick="openModal('vacacionesModal')">
+            <i class="fas fa-plus"></i>
+            Nueva Solicitud
+          </button>
+        </div>
+
+        <div class="vacaciones-stats">
+          <div class="stat-item">
+            <span class="stat-number" id="vacacionesPendientes">0</span>
+            <span class="stat-label">Pendientes</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="vacacionesAprobadas">0</span>
+            <span class="stat-label">Aprobadas</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="vacacionesRechazadas">0</span>
+            <span class="stat-label">Rechazadas</span>
+          </div>
+        </div>
+
+        <div class="data-table-container">
+          <table class="data-table" id="vacacionesTable">
+            <thead>
+              <tr>
+                <th>Empleado</th>
+                <th>Fecha Inicio</th>
+                <th>Fecha Fin</th>
+                <th>Días</th>
+                <th>Motivo</th>
+                <th>Estado</th>
+                <th id="accionesHeader">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="vacacionesTableBody">
+              <tr class="empty-row">
+                <td colspan="7">
+                  <div class="empty-state">
+                    <i class="fas fa-calendar-alt"></i>
+                    <h6>No hay solicitudes de vacaciones</h6>
+                    <p>Las solicitudes aparecerán aquí</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Reportes -->
+      <div id="reportes" class="page">
+        <div class="reports-grid">
+          <div class="report-card">
+            <div class="report-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="report-content">
+              <h5>Reporte de Empleados</h5>
+              <p>Lista completa de empleados con detalles</p>
+              <button class="btn-outline" onclick="generarReporte('empleados')">
+                <i class="fas fa-download"></i>
+                Generar
+              </button>
+            </div>
+          </div>
+
+          <div class="report-card">
+            <div class="report-icon">
+              <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="report-content">
+              <h5>Reporte de Nómina</h5>
+              <p>Cálculos detallados de nómina mensual</p>
+              <button class="btn-outline" onclick="generarReporte('nomina')">
+                <i class="fas fa-download"></i>
+                Generar
+              </button>
+            </div>
+          </div>
+
+          <div class="report-card">
+            <div class="report-icon">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="report-content">
+              <h5>Reporte de Vacaciones</h5>
+              <p>Historial de solicitudes y aprobaciones</p>
+              <button class="btn-outline" onclick="generarReporte('vacaciones')">
+                <i class="fas fa-download"></i>
+                Generar
+              </button>
+            </div>
+          </div>
+
+          <div class="report-card">
+            <div class="report-icon">
+              <i class="fas fa-chart-bar"></i>
+            </div>
+            <div class="report-content">
+              <h5>Reporte Analítico</h5>
+              <p>Estadísticas y métricas del sistema</p>
+              <button class="btn-outline" onclick="generarReporte('analytics')">
+                <i class="fas fa-download"></i>
+                Generar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics -->
+      <div id="analytics" class="page">
+        <div class="analytics-grid">
+          <div class="analytics-card">
+            <h5>Crecimiento de Empleados</h5>
+            <div class="chart-placeholder">
+              <i class="fas fa-chart-line"></i>
+              <p>Gráfico de crecimiento mensual</p>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <h5>Distribución Salarial</h5>
+            <div class="chart-placeholder">
+              <i class="fas fa-chart-pie"></i>
+              <p>Distribución por rangos salariales</p>
+            </div>
+          </div>
+
+          <div class="analytics-card full-width">
+            <h5>Tendencias de Vacaciones</h5>
+            <div class="chart-placeholder">
+              <i class="fas fa-chart-area"></i>
+              <p>Análisis de patrones de vacaciones</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuración -->
+      <div id="configuracion" class="page">
+        <div class="config-sections">
+          <div class="config-card">
+            <h5>Configuración General</h5>
+            <div class="config-options">
+              <div class="config-item">
+                <label>Nombre de la Empresa</label>
+                <input type="text" value="Mi Empresa S.A." id="empresaNombre"/>
+              </div>
+              <div class="config-item">
+                <label>Moneda</label>
+                <select id="moneda">
+                  <option value="RD$">Peso Dominicano (RD$)</option>
+                  <option value="USD">Dólar Americano (USD)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-card">
+            <h5>Configuración de Nómina</h5>
+            <div class="config-options">
+              <div class="config-item">
+                <label>AFP (%)</label>
+                <input type="number" value="2.87" step="0.01" id="afpPorcentaje"/>
+              </div>
+              <div class="config-item">
+                <label>ARS (%)</label>
+                <input type="number" value="3.04" step="0.01" id="arsPorcentaje"/>
+              </div>
+              <div class="config-item">
+                <label>ISR (%)</label>
+                <input type="number" value="10" step="0.01" id="isrPorcentaje"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-actions">
+          <button class="btn-primary" onclick="guardarConfiguracion()">
+            <i class="fas fa-save"></i>
+            Guardar Cambios
+          </button>
+          <button class="btn-outline" onclick="resetearConfiguracion()">
+            <i class="fas fa-undo"></i>
+            Restablecer
+          </button>
+        </div>
+      </div>
+
+      <!-- Perfil -->
+      <div id="perfil" class="page">
+        <div class="profile-container">
+          <div class="profile-header">
+            <div class="profile-avatar">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="profile-info">
+              <h3 id="profileName">Usuario</h3>
+              <p id="profileRole">Rol</p>
+              <span class="profile-status online">En línea</span>
+            </div>
+          </div>
+
+          <div class="profile-content">
+            <div class="profile-section">
+              <h5>Información Personal</h5>
+              <div class="profile-fields">
+                <div class="field-group">
+                  <label>Nombre Completo</label>
+                  <input type="text" id="profileFullName" value="Usuario Demo"/>
+                </div>
+                <div class="field-group">
+                  <label>Email</label>
+                  <input type="email" id="profileEmail" value="usuario@empresa.com"/>
+                </div>
+                <div class="field-group">
+                  <label>Teléfono</label>
+                  <input type="tel" id="profilePhone" value="+1 (809) 555-0123"/>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-section">
+              <h5>Cambiar Contraseña</h5>
+              <div class="profile-fields">
+                <div class="field-group">
+                  <label>Contraseña Actual</label>
+                  <input type="password" id="currentPassword"/>
+                </div>
+                <div class="field-group">
+                  <label>Nueva Contraseña</label>
+                  <input type="password" id="newPassword"/>
+                </div>
+                <div class="field-group">
+                  <label>Confirmar Contraseña</label>
+                  <input type="password" id="confirmPassword"/>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-actions">
+            <button class="btn-primary" onclick="actualizarPerfil()">
+              <i class="fas fa-save"></i>
+              Guardar Cambios
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modals -->
+<!-- Modal Empleado -->
+<div id="empleadoModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5>Nuevo Empleado</h5>
+      <button class="modal-close" onclick="closeModal('empleadoModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="empleadoForm">
+        <div class="form-grid">
+          <div class="form-section">
+            <h6>Información Personal</h6>
+            <div class="form-group">
+              <label>Nombre Completo *</label>
+              <input type="text" id="empNombre" required/>
+            </div>
+            <div class="form-group">
+              <label>Cédula *</label>
+              <input type="text" id="empCedula" required/>
+            </div>
+            <div class="form-group">
+              <label>Fecha de Nacimiento *</label>
+              <input type="date" id="empFechaNacimiento" required/>
+            </div>
+            <div class="form-group">
+              <label>Teléfono *</label>
+              <input type="tel" id="empTelefono" required/>
+            </div>
+            <div class="form-group">
+              <label>Email *</label>
+              <input type="email" id="empEmail" required/>
+            </div>
+            <div class="form-group">
+              <label>Dirección *</label>
+              <textarea id="empDireccion" rows="3" required></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h6>Información Laboral</h6>
+            <div class="form-group">
+              <label>Departamento *</label>
+              <input type="text" id="empDepartamento" required/>
+            </div>
+            <div class="form-group">
+              <label>Puesto *</label>
+              <input type="text" id="empPuesto" required/>
+            </div>
+            <div class="form-group">
+              <label>Profesión *</label>
+              <input type="text" id="empProfesion" required/>
+            </div>
+            <div class="form-group">
+              <label>Sueldo Base *</label>
+              <div class="input-with-prefix">
+                <span>RD$</span>
+                <input type="number" id="empSueldo" min="0" step="0.01" required/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Fecha de Ingreso *</label>
+              <input type="date" id="empFechaIngreso" required/>
+            </div>
+            <div class="form-group">
+              <label>Estado *</label>
+              <select id="empEstado" required>
+                <option value="">Seleccionar...</option>
+                <option value="Activo">Activo</option>
+                <option value="Inactivo">Inactivo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('empleadoModal')">Cancelar</button>
+      <button class="btn-primary" onclick="guardarEmpleado()">
+        <i class="fas fa-save"></i>
+        Guardar Empleado
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Vacaciones -->
+<div id="vacacionesModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5>Nueva Solicitud de Vacaciones</h5>
+      <button class="modal-close" onclick="closeModal('vacacionesModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="vacacionesForm">
+        <div class="form-group">
+          <label>Empleado *</label>
+          <select id="vacEmpleado" required>
+            <option value="">Seleccionar empleado...</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Fecha de Inicio *</label>
+            <input type="date" id="vacFechaInicio" required/>
+          </div>
+          <div class="form-group">
+            <label>Fecha de Fin *</label>
+            <input type="date" id="vacFechaFin" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Días Solicitados</label>
+          <input type="number" id="vacDias" readonly/>
+        </div>
+        <div class="form-group">
+          <label>Motivo *</label>
+          <textarea id="vacMotivo" rows="4" required placeholder="Describe el motivo de la solicitud..."></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('vacacionesModal')">Cancelar</button>
+      <button class="btn-primary" onclick="guardarVacaciones()">
+        <i class="fas fa-paper-plane"></i>
+        Enviar Solicitud
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notifications -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- Footer -->
+<footer class="app-footer">
+  <div class="footer-content">
+    <div class="footer-left">
+      <p>&copy; 2024 HRPro - Desarrollado por el Grupo 3</p>
+      <div class="team-credits">
+        <span>Mario Soriano (2023-0998)</span> •
+        <span>Jensey Jiménez (2023-1800)</span> •
+        <span>Gredd Rodríguez (2023-0994)</span> •
+        <span>Joan Gómez (2022-0072)</span> •
+        <span>Juan Carlos Díaz (2022-1946)</span> •
+        <span>Patryck Jiménez (2023-1953)</span> •
+        <span>Eric Alberto Jiménez (2023-0966)</span>
+      </div>
+    </div>
+    <div class="footer-right">
+      <span>Sistema de Gestión de Recursos Humanos</span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
