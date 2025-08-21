@@ -1,8 +1,9 @@
-// Variables globales
+// ===================== Estado Global =====================
 let empleados = []
 let solicitudesVacaciones = []
 let usuarioActual = null
 let paginaActual = "dashboard"
+
 const configuracion = {
   empresaNombre: "HRPro Empresa Demo S.A.",
   moneda: "RD$",
@@ -11,15 +12,14 @@ const configuracion = {
   isr: 10,
 }
 
-// Claves de almacenamiento local
 const STORAGE_KEYS = {
   empleados: "hrpro_empleados",
   solicitudes: "hrpro_solicitudes_vacaciones",
   config: "hrpro_configuracion",
-  dataLoaded: "hrpro_data_loaded", // Para saber si ya cargamos datos del JSON
+  dataLoaded: "hrpro_data_loaded",
 }
 
-// Utilidades de localStorage
+// ===================== Utils localStorage =====================
 function loadJSON(key, fallback = null) {
   try {
     const raw = localStorage.getItem(key)
@@ -42,34 +42,24 @@ function saveJSON(key, value) {
   }
 }
 
-// Cargar datos desde archivo JSON
+// ===================== Carga Inicial =====================
 async function cargarDatosDesdeJSON() {
   try {
     console.log("🔄 Cargando datos desde archivo JSON...")
     const response = await fetch("./data/empleados.json")
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
     const data = await response.json()
 
-    // Cargar datos del JSON
     empleados = data.empleados || []
     solicitudesVacaciones = data.solicitudesVacaciones || []
+    if (data.configuracion) Object.assign(configuracion, data.configuracion)
 
-    if (data.configuracion) {
-      Object.assign(configuracion, data.configuracion)
-    }
-
-    // Guardar en localStorage para futuras sesiones
     saveJSON(STORAGE_KEYS.empleados, empleados)
     saveJSON(STORAGE_KEYS.solicitudes, solicitudesVacaciones)
     saveJSON(STORAGE_KEYS.config, configuracion)
     saveJSON(STORAGE_KEYS.dataLoaded, true)
 
     console.log(`✅ Datos cargados: ${empleados.length} empleados, ${solicitudesVacaciones.length} solicitudes`)
-
     return true
   } catch (error) {
     console.error("❌ Error cargando datos desde JSON:", error)
@@ -79,32 +69,25 @@ async function cargarDatosDesdeJSON() {
   }
 }
 
-// Inicialización
 document.addEventListener("DOMContentLoaded", async () => {
   inicializarApp()
   await cargarEstadoDesdeStorageOJSON()
 })
 
 async function cargarEstadoDesdeStorageOJSON() {
-  // Verificar si ya tenemos datos en localStorage
   const dataLoaded = loadJSON(STORAGE_KEYS.dataLoaded, false)
   const storedEmpleados = loadJSON(STORAGE_KEYS.empleados, null)
   const storedSolicitudes = loadJSON(STORAGE_KEYS.solicitudes, null)
   const storedConfig = loadJSON(STORAGE_KEYS.config, null)
 
   if (dataLoaded && Array.isArray(storedEmpleados) && storedEmpleados.length > 0) {
-    // Cargar desde localStorage
     console.log("📦 Cargando datos desde localStorage...")
     empleados = storedEmpleados
     solicitudesVacaciones = Array.isArray(storedSolicitudes) ? storedSolicitudes : []
-    if (storedConfig && typeof storedConfig === "object") {
-      Object.assign(configuracion, storedConfig)
-    }
+    if (storedConfig && typeof storedConfig === "object") Object.assign(configuracion, storedConfig)
   } else {
-    // Cargar desde archivo JSON
-    const jsonLoaded = await cargarDatosDesdeJSON()
-    if (!jsonLoaded && empleados.length === 0) {
-      // Si falla todo, cargar datos de ejemplo
+    const ok = await cargarDatosDesdeJSON()
+    if (!ok && empleados.length === 0) {
       cargarDatosEjemplo()
       saveJSON(STORAGE_KEYS.empleados, empleados)
       saveJSON(STORAGE_KEYS.solicitudes, solicitudesVacaciones)
@@ -112,13 +95,10 @@ async function cargarEstadoDesdeStorageOJSON() {
     }
   }
 
-  // Actualizar interfaz
   actualizarDashboard()
   actualizarTablaEmpleados()
   actualizarNomina()
   actualizarVacaciones()
-
-  // Mostrar estadísticas de carga
   mostrarEstadisticasCarga()
 }
 
@@ -126,7 +106,6 @@ function mostrarEstadisticasCarga() {
   const totalEmpleados = empleados.length
   const totalSolicitudes = solicitudesVacaciones.length
   const empleadosActivos = empleados.filter((e) => e.estado === "Activo").length
-
   console.log("📊 Estadísticas del sistema:")
   console.log(`   👥 Total empleados: ${totalEmpleados}`)
   console.log(`   ✅ Empleados activos: ${empleadosActivos}`)
@@ -134,36 +113,32 @@ function mostrarEstadisticasCarga() {
   console.log(`   💰 Empresa: ${configuracion.empresaNombre}`)
 }
 
+// ===================== Inicialización UI =====================
 function inicializarApp() {
-  // Login
   document.getElementById("loginForm").addEventListener("submit", handleLogin)
-  // Sidebar
   document.getElementById("sidebarToggle").addEventListener("click", toggleSidebar)
-  // Navigation
+
   document.querySelectorAll(".menu-item").forEach((item) => {
     item.addEventListener("click", function () {
       const page = this.dataset.page
       if (page) navigateTo(page)
     })
   })
-  // Search & filters
+
   document.getElementById("searchEmpleados")?.addEventListener("input", filtrarEmpleados)
   document.getElementById("filterDepartamento")?.addEventListener("change", filtrarEmpleados)
   document.getElementById("filterEstado")?.addEventListener("change", filtrarEmpleados)
+  document.getElementById("filterEstadoVacaciones")?.addEventListener("change", actualizarVacaciones)
 
-  // Modals backdrop click
   document.addEventListener("click", (e) => {
     if (e.target.classList?.contains("modal")) closeModal(e.target.id)
   })
 
-  // Forms
   setupFormEvents()
-
-  // Keyboard shortcuts
   document.addEventListener("keydown", handleKeyboardShortcuts)
 }
 
-// Login
+// ===================== Login / Logout =====================
 function handleLogin(e) {
   e.preventDefault()
   const usuario = document.getElementById("loginUser").value.trim()
@@ -190,7 +165,6 @@ function handleLogin(e) {
 
     aplicarPermisos()
     navigateTo("dashboard")
-
     showToast("Bienvenido al sistema", `Sesión iniciada como ${usuarioActual.nombre}`, "success")
   } else {
     showToast("Error de autenticación", "Credenciales incorrectas", "error")
@@ -210,7 +184,7 @@ function logout() {
   showToast("Sesión cerrada", "Has cerrado sesión exitosamente", "info")
 }
 
-// Navigation
+// ===================== Navegación =====================
 function navigateTo(page) {
   document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"))
   document.getElementById(page).classList.add("active")
@@ -236,32 +210,19 @@ function navigateTo(page) {
   paginaActual = page
 
   switch (page) {
-    case "dashboard":
-      actualizarDashboard()
-      break
-    case "empleados":
-      actualizarTablaEmpleados()
-      break
-    case "nomina":
-      actualizarNomina()
-      break
-    case "vacaciones":
-      actualizarVacaciones()
-      break
-    case "analytics":
-      actualizarAnalytics()
-      break
+    case "dashboard": actualizarDashboard(); break
+    case "empleados": actualizarTablaEmpleados(); break
+    case "nomina": actualizarNomina(); break
+    case "vacaciones": actualizarVacaciones(); break
+    case "analytics": actualizarAnalytics(); break
   }
 }
 
-function toggleSidebar() {
-  document.querySelector(".sidebar").classList.toggle("active")
-}
+function toggleSidebar() { document.querySelector(".sidebar").classList.toggle("active") }
 
-// Permisos por rol
+// ===================== Permisos por Rol =====================
 function aplicarPermisos() {
   const items = document.querySelectorAll(".menu-item")
-  // Reset
   items.forEach((it) => (it.style.display = ""))
 
   if (usuarioActual?.role === "empleado") {
@@ -278,7 +239,7 @@ function aplicarPermisos() {
   // admin ve todo
 }
 
-// Dashboard
+// ===================== Dashboard =====================
 function actualizarDashboard() {
   const totalEmpleados = empleados.length
   const empleadosActivos = empleados.filter((e) => e.estado === "Activo").length
@@ -319,7 +280,7 @@ function actualizarDashboard() {
             <h6>${emp.nombre}</h6>
             <p>${emp.puesto} - ${emp.departamento}</p>
           </div>
-        </div>`,
+        </div>`
           )
           .join("")
 
@@ -344,7 +305,7 @@ function actualizarDashboard() {
           .join("")
 }
 
-// Empleados
+// ===================== Empleados =====================
 function actualizarTablaEmpleados() {
   const tbody = document.getElementById("empleadosTableBody")
   if (empleados.length === 0) {
@@ -397,7 +358,7 @@ function actualizarTablaEmpleados() {
           </button>
         </div>
       </td>
-    </tr>`,
+    </tr>`
     )
     .join("")
 
@@ -474,7 +435,7 @@ function filtrarEmpleados() {
             </button>
           </div>
         </td>
-      </tr>`,
+      </tr>`
       )
       .join("")
   }
@@ -496,9 +457,12 @@ function editarEmpleado(id) {
   document.getElementById("empTelefono").value = empleado.telefono
   document.getElementById("empEmail").value = empleado.email
   document.getElementById("empDireccion").value = empleado.direccion
-  document.getElementById("empDepartamento").value = empleado.departamento
-  document.getElementById("empPuesto").value = empleado.puesto
-  document.getElementById("empProfesion").value = empleado.profesion
+
+  // selects (si no existe la opción, se agrega temporalmente y se selecciona)
+  setSelectValue("empDepartamento", empleado.departamento)
+  setSelectValue("empPuesto", empleado.puesto)
+  setSelectValue("empProfesion", empleado.profesion)
+
   document.getElementById("empSueldo").value = empleado.sueldoBase
   document.getElementById("empFechaIngreso").value = empleado.fechaIngreso
   document.getElementById("empEstado").value = empleado.estado
@@ -577,7 +541,18 @@ function guardarEmpleado() {
   cargarEmpleadosEnSelects()
 }
 
-// Nómina
+function setSelectValue(selectId, value) {
+  const sel = document.getElementById(selectId)
+  if (!sel) return
+  const has = Array.from(sel.options).some((o) => o.value === value)
+  if (!has && value) {
+    sel.insertBefore(new Option(value, value, true, true), sel.firstChild)
+  } else {
+    sel.value = value || ""
+  }
+}
+
+// ===================== Nómina =====================
 function actualizarNomina() {
   const activos = empleados.filter((e) => e.estado === "Activo")
   let totalBruto = 0
@@ -651,61 +626,24 @@ function procesarNomina() {
     showToast("Error", "No hay empleados activos para procesar", "error")
     return
   }
+  if (!confirm(`¿Está seguro de procesar la nómina para ${activos.length} empleados?`)) return
 
-  // Mostrar confirmación antes de procesar
-  if (!confirm(`¿Está seguro de procesar la nómina para ${activos.length} empleados?`)) {
-    return
-  }
-
-  // Simular procesamiento con progreso
   showToast("Procesando nómina", "Iniciando procesamiento de nómina...", "info")
-
   let procesados = 0
   const totalEmpleados = activos.length
 
   const interval = setInterval(() => {
     procesados++
-
-    // Mostrar progreso
     const progreso = Math.round((procesados / totalEmpleados) * 100)
-
     if (procesados < totalEmpleados) {
       showToast("Procesando", `Procesando empleado ${procesados} de ${totalEmpleados} (${progreso}%)`, "info")
     } else {
       clearInterval(interval)
-
-      // Calcular totales para mostrar en el resultado
-      let totalBruto = 0
-      let totalDescuentos = 0
-      let totalNeto = 0
-
-      activos.forEach((emp) => {
-        const sueldoBase = emp.sueldoBase
-        const afp = sueldoBase * (configuracion.afp / 100)
-        const ars = sueldoBase * (configuracion.ars / 100)
-        const isr = sueldoBase > 34685 ? sueldoBase * (configuracion.isr / 100) : 0
-        const descuentos = afp + ars + isr
-        const bonificaciones = 3500
-        const sueldoNeto = sueldoBase - descuentos + bonificaciones
-
-        totalBruto += sueldoBase
-        totalDescuentos += descuentos
-        totalNeto += sueldoNeto
-      })
-
-      const resumen = `
-Nómina procesada exitosamente:
-• Empleados procesados: ${totalEmpleados}
-• Total bruto: ${configuracion.moneda}${totalBruto.toLocaleString()}
-• Total descuentos: ${configuracion.moneda}${totalDescuentos.toLocaleString()}
-• Total neto: ${configuracion.moneda}${totalNeto.toLocaleString()}
-      `
-
-      showToast("¡Nómina Procesada!", resumen, "success")
       actualizarNomina()
       actualizarDashboard()
+      showToast("¡Nómina Procesada!", `Se procesaron ${totalEmpleados} empleados.`, "success")
     }
-  }, 200) // Procesar cada 200ms para mostrar progreso
+  }, 200)
 }
 
 function exportarNomina() {
@@ -753,8 +691,11 @@ Sueldo Neto: ${configuracion.moneda}${sueldoNeto.toLocaleString()}
   showToast("Detalle de Nómina", detalle, "info")
 }
 
-// Vacaciones
+// ===================== Vacaciones =====================
 function actualizarVacaciones() {
+  const filtro = document.getElementById("filterEstadoVacaciones")?.value || ""
+  const solicitudes = filtro ? solicitudesVacaciones.filter((s) => s.estado === filtro) : solicitudesVacaciones
+
   const pendientes = solicitudesVacaciones.filter((s) => s.estado === "Pendiente").length
   const aprobadas = solicitudesVacaciones.filter((s) => s.estado === "Aprobado").length
   const rechazadas = solicitudesVacaciones.filter((s) => s.estado === "Rechazado").length
@@ -764,10 +705,10 @@ function actualizarVacaciones() {
   document.getElementById("vacacionesRechazadas").textContent = rechazadas
 
   const tbody = document.getElementById("vacacionesTableBody")
-  if (solicitudesVacaciones.length === 0) {
+  if (solicitudes.length === 0) {
     tbody.innerHTML = `
       <tr class="empty-row">
-        <td colspan="7">
+        <td colspan="8">
           <div class="empty-state">
             <i class="fas fa-calendar-alt"></i>
             <h6>No hay solicitudes de vacaciones</h6>
@@ -778,10 +719,11 @@ function actualizarVacaciones() {
     return
   }
 
-  tbody.innerHTML = solicitudesVacaciones
+  tbody.innerHTML = solicitudes
     .map((sol) => {
       const emp = empleados.find((e) => e.id === sol.empleadoId)
       const isEmpleado = usuarioActual?.role === "empleado"
+      const motivoDecision = sol.decisionMotivo ? escapeHTML(sol.decisionMotivo) : "—"
 
       return `
       <tr>
@@ -797,8 +739,9 @@ function actualizarVacaciones() {
         <td>${formatearFecha(sol.fechaInicio)}</td>
         <td>${formatearFecha(sol.fechaFin)}</td>
         <td>${sol.dias}</td>
-        <td>${sol.motivo}</td>
+        <td>${escapeHTML(sol.motivo)}</td>
         <td><span class="status-badge ${sol.estado.toLowerCase()}">${sol.estado}</span></td>
+        <td>${motivoDecision}</td>
         ${
           !isEmpleado
             ? `<td>
@@ -830,20 +773,11 @@ function actualizarVacaciones() {
   // Ocultar/mostrar columna de acciones según el rol
   const accionesHeader = document.getElementById("accionesHeader")
   const isEmpleado = usuarioActual?.role === "empleado"
-
-  if (accionesHeader) {
-    if (isEmpleado) {
-      accionesHeader.style.display = "none"
-    } else {
-      accionesHeader.style.display = ""
-    }
-  }
+  if (accionesHeader) accionesHeader.style.display = isEmpleado ? "none" : ""
 
   // Ajustar colspan de empty state
   const emptyRow = document.querySelector("#vacacionesTableBody .empty-row td")
-  if (emptyRow) {
-    emptyRow.setAttribute("colspan", isEmpleado ? "6" : "7")
-  }
+  if (emptyRow) emptyRow.setAttribute("colspan", isEmpleado ? "7" : "8")
 }
 
 function cargarEmpleadosEnSelects() {
@@ -880,7 +814,6 @@ function guardarVacaciones() {
     return
   }
 
-  const emp = empleados.find((e) => e.id === empleadoId)
   const nueva = {
     id: Date.now(),
     empleadoId,
@@ -890,6 +823,8 @@ function guardarVacaciones() {
     motivo,
     estado: "Pendiente",
     fechaSolicitud: new Date().toISOString(),
+    decisionMotivo: null,
+    decisionFecha: null,
   }
 
   solicitudesVacaciones.push(nueva)
@@ -901,32 +836,54 @@ function guardarVacaciones() {
   actualizarVacaciones()
   actualizarDashboard()
 
+  const emp = empleados.find((e) => e.id === empleadoId)
   showToast("Solicitud enviada", `Solicitud de vacaciones para ${emp?.nombre ?? "Empleado"} enviada`, "success")
 }
 
-function aprobarVacaciones(id) {
-  const sol = solicitudesVacaciones.find((s) => s.id === id)
-  if (sol) {
-    sol.estado = "Aprobado"
-    saveJSON(STORAGE_KEYS.solicitudes, solicitudesVacaciones)
-    actualizarVacaciones()
-    actualizarDashboard()
-    const emp = empleados.find((e) => e.id === sol.empleadoId)
-    showToast("Solicitud aprobada", `Vacaciones de ${emp ? emp.nombre : "empleado"} aprobadas`, "success")
-  }
+// === Nuevo flujo con modal de decisión ===
+function openDecisionModal(solicitudId, accion) {
+  const sol = solicitudesVacaciones.find((s) => s.id === solicitudId)
+  if (!sol) return
+  document.getElementById("decisionSolicitudId").value = solicitudId
+  document.getElementById("decisionAccion").value = accion
+  document.getElementById("decisionMotivo").value = ""
+  document.getElementById("decisionModalTitle").textContent =
+    accion === "Aprobado" ? "Aprobar Solicitud" : "Rechazar Solicitud"
+  document.getElementById("decisionLabel").textContent =
+    accion === "Aprobado" ? "Motivo de aprobación *" : "Motivo de rechazo *"
+  openModal("decisionModal")
 }
 
-function rechazarVacaciones(id) {
-  const sol = solicitudesVacaciones.find((s) => s.id === id)
-  if (sol) {
-    sol.estado = "Rechazado"
-    saveJSON(STORAGE_KEYS.solicitudes, solicitudesVacaciones)
-    actualizarVacaciones()
-    actualizarDashboard()
-    const emp = empleados.find((e) => e.id === sol.empleadoId)
-    showToast("Solicitud rechazada", `Vacaciones de ${emp ? emp.nombre : "empleado"} rechazadas`, "warning")
+function confirmarDecision() {
+  const id = Number(document.getElementById("decisionSolicitudId").value)
+  const accion = document.getElementById("decisionAccion").value
+  const motivo = document.getElementById("decisionMotivo").value.trim()
+  if (!id || !accion || !motivo) {
+    showToast("Error de validación", "Debes indicar el motivo de la decisión", "error")
+    return
   }
+  const sol = solicitudesVacaciones.find((s) => s.id === id)
+  if (!sol) return
+  sol.estado = accion
+  sol.decisionMotivo = motivo
+  sol.decisionFecha = new Date().toISOString()
+  saveJSON(STORAGE_KEYS.solicitudes, solicitudesVacaciones)
+
+  closeModal("decisionModal")
+  actualizarVacaciones()
+  actualizarDashboard()
+
+  const emp = empleados.find((e) => e.id === sol.empleadoId)
+  showToast(
+    `Solicitud ${accion.toLowerCase()}`,
+    `${emp ? emp.nombre : "Empleado"}: ${motivo}`,
+    accion === "Aprobado" ? "success" : "warning"
+  )
 }
+
+// Reemplazo de las funciones existentes para abrir el modal:
+function aprobarVacaciones(id) { openDecisionModal(id, "Aprobado") }
+function rechazarVacaciones(id) { openDecisionModal(id, "Rechazado") }
 
 function verVacaciones(id) {
   const sol = solicitudesVacaciones.find((s) => s.id === id)
@@ -934,7 +891,6 @@ function verVacaciones(id) {
     const emp = empleados.find((e) => e.id === sol.empleadoId)
     const fechaInicio = formatearFecha(sol.fechaInicio)
     const fechaFin = formatearFecha(sol.fechaFin)
-
     const detalle = `
 Empleado: ${emp ? emp.nombre : "Empleado"}
 Departamento: ${emp ? emp.departamento : "N/A"}
@@ -942,15 +898,16 @@ Puesto: ${emp ? emp.puesto : "N/A"}
 Período: ${fechaInicio} - ${fechaFin}
 Días solicitados: ${sol.dias}
 Estado: ${sol.estado}
-Motivo: ${sol.motivo}
+Motivo (Solicitud): ${sol.motivo}
+Motivo (Decisión): ${sol.decisionMotivo ? sol.decisionMotivo : "—"}
 Fecha de solicitud: ${formatearFecha(sol.fechaSolicitud)}
+${sol.decisionFecha ? "Fecha de decisión: " + formatearFecha(sol.decisionFecha) : ""}
     `
-
     showToast("Detalles de Solicitud de Vacaciones", detalle, "info")
   }
 }
 
-// Reportes
+// ===================== Reportes =====================
 function generarReporte(tipo) {
   let contenido = ""
   let filename = ""
@@ -978,10 +935,10 @@ function generarReporte(tipo) {
       break
 
     case "vacaciones":
-      contenido = "Empleado,Fecha Inicio,Fecha Fin,Días,Estado,Motivo\n"
+      contenido = "Empleado,Fecha Inicio,Fecha Fin,Días,Estado,Motivo Solicitud,Motivo Decisión\n"
       solicitudesVacaciones.forEach((s) => {
         const emp = empleados.find((e) => e.id === s.empleadoId)
-        contenido += `${emp ? emp.nombre : "N/A"},${s.fechaInicio},${s.fechaFin},${s.dias},${s.estado},"${s.motivo}"\n`
+        contenido += `${emp ? emp.nombre : "N/A"},${s.fechaInicio},${s.fechaFin},${s.dias},${s.estado},"${s.motivo}","${s.decisionMotivo || ""}"\n`
       })
       filename = "reporte_vacaciones.csv"
       break
@@ -1010,7 +967,7 @@ function generarReporte(tipo) {
   showToast("Reporte generado", `El reporte ${tipo} ha sido descargado`, "success")
 }
 
-// Configuración
+// ===================== Configuración =====================
 function guardarConfiguracion() {
   configuracion.empresaNombre = document.getElementById("empresaNombre").value
   configuracion.moneda = document.getElementById("moneda").value
@@ -1019,7 +976,6 @@ function guardarConfiguracion() {
   configuracion.isr = Number.parseFloat(document.getElementById("isrPorcentaje").value)
 
   saveJSON(STORAGE_KEYS.config, configuracion)
-
   showToast("Configuración guardada", "Los cambios han sido guardados exitosamente", "success")
   actualizarNomina()
   actualizarDashboard()
@@ -1044,31 +1000,18 @@ function resetearConfiguracion() {
   actualizarDashboard()
 }
 
-// Perfil
+// ===================== Perfil =====================
 function actualizarPerfil() {
   const nombre = document.getElementById("profileFullName").value
-  const email = document.getElementById("profileEmail").value
-  const telefono = document.getElementById("profilePhone").value
-  const currentPassword = document.getElementById("currentPassword").value
-  const newPassword = document.getElementById("newPassword").value
-  const confirmPassword = document.getElementById("confirmPassword").value
-
-  if (newPassword && newPassword !== confirmPassword) {
-    showToast("Error", "Las contraseñas no coinciden", "error")
-    return
-  }
-
   document.getElementById("profileName").textContent = nombre
   document.getElementById("currentUserName").textContent = nombre
-
   document.getElementById("currentPassword").value = ""
   document.getElementById("newPassword").value = ""
   document.getElementById("confirmPassword").value = ""
-
   showToast("Perfil actualizado", "Tu información ha sido actualizada exitosamente", "success")
 }
 
-// Modals
+// ===================== Modales =====================
 function openModal(modalId) {
   document.getElementById(modalId).classList.add("active")
   document.body.style.overflow = "hidden"
@@ -1077,13 +1020,10 @@ function closeModal(modalId) {
   document.getElementById(modalId).classList.remove("active")
   document.body.style.overflow = ""
   const form = document.querySelector(`#${modalId} form`)
-  if (form) {
-    form.reset()
-    delete form.dataset.editId
-  }
+  if (form) { form.reset(); delete form.dataset.editId }
 }
 
-// Form Events
+// ===================== Formularios y Validaciones =====================
 function setupFormEvents() {
   // Vacaciones: cálculo de días
   const fechaInicio = document.getElementById("vacFechaInicio")
@@ -1107,14 +1047,11 @@ function setupFormEvents() {
 
   // Sembrar valores iniciales en formularios
   const fechaIngresoInput = document.getElementById("empFechaIngreso")
-  if (fechaIngresoInput) {
-    fechaIngresoInput.value = new Date().toISOString().split("T")[0]
-  }
+  if (fechaIngresoInput) fechaIngresoInput.value = new Date().toISOString().split("T")[0]
 
   setupValidations()
 }
 
-// Validaciones (cédula/teléfono)
 function setupValidations() {
   const cedulaInput = document.getElementById("empCedula")
   if (cedulaInput) {
@@ -1122,143 +1059,93 @@ function setupValidations() {
       let value = e.target.value.replace(/\D/g, "")
       if (value.length >= 3) value = value.substring(0, 3) + "-" + value.substring(3)
       if (value.length >= 11) value = value.substring(0, 11) + "-" + value.substring(11, 12)
-      e.target.value = value
+      e.target.value = value.substring(0, 13)
     })
   }
 
-  const telefonoInput = document.getElementById("empTelefono")
-  if (telefonoInput) {
-    telefonoInput.addEventListener("input", (e) => {
-      let value = e.target.value.replace(/\D/g, "")
-      if (value.length >= 3) {
-        value = value.substring(0, 3) + "-" + value.substring(3)
-        if (value.length >= 7) {
-          value = value.substring(0, 7) + "-" + value.substring(7, 11)
-        }
-      }
-      e.target.value = value
+  const telInput = document.getElementById("empTelefono")
+  if (telInput) {
+    telInput.addEventListener("input", (e) => {
+      e.target.value = e.target.value.replace(/[^\d+\-\s()]/g, "")
     })
   }
 }
 
-// Toasts
+// ===================== Helpers / Varios =====================
+function handleKeyboardShortcuts(e) {
+  // Ejemplo: N = Nueva Solicitud de Vacaciones si estás en la pestaña
+  if (e.key.toLowerCase() === "n" && paginaActual === "vacaciones") openModal("vacacionesModal")
+}
+
+function formatearFecha(iso) {
+  if (!iso) return "—"
+  const d = new Date(iso)
+  if (isNaN(d)) return iso
+  return d.toLocaleDateString()
+}
+
+function escapeHTML(str) {
+  if (str == null) return ""
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+}
+
 function showToast(title, message, type = "info") {
-  const toastContainer = document.getElementById("toastContainer")
-  const toastId = "toast_" + Date.now()
-
-  const icons = {
-    success: "fas fa-check",
-    error: "fas fa-times",
-    warning: "fas fa-exclamation-triangle",
-    info: "fas fa-info-circle",
-  }
-
+  const container = document.getElementById("toastContainer")
   const toast = document.createElement("div")
-  toast.id = toastId
   toast.className = `toast ${type}`
   toast.innerHTML = `
-    <div class="toast-icon"><i class="${icons[type]}"></i></div>
+    <div class="toast-icon"><i class="fas ${type === "success" ? "fa-check" : type === "error" ? "fa-times" : type === "warning" ? "fa-exclamation" : "fa-info"}"></i></div>
     <div class="toast-content">
-      <div class="toast-title">${title}</div>
-      <div class="toast-message">${String(message).replace(/\n/g, "<br>")}</div>
+      <div class="toast-title">${escapeHTML(title)}</div>
+      <div class="toast-message" style="white-space:pre-line">${escapeHTML(message)}</div>
     </div>
-    <button class="toast-close" onclick="closeToast('${toastId}')">
-      <i class="fas fa-times"></i>
-    </button>
+    <button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
   `
-  toastContainer.appendChild(toast)
-  setTimeout(() => closeToast(toastId), 5000)
-}
-function closeToast(toastId) {
-  const toast = document.getElementById(toastId)
-  if (!toast) return
-  toast.style.animation = "toastSlideOut 0.3s ease-in forwards"
-  setTimeout(() => toast.remove(), 300)
+  container.appendChild(toast)
+  setTimeout(() => toast.remove(), 4500)
 }
 
-// Atajos
-function handleKeyboardShortcuts(e) {
-  if (e.ctrlKey || e.metaKey) {
-    switch (e.key) {
-      case "1":
-        e.preventDefault()
-        navigateTo("dashboard")
-        break
-      case "2":
-        e.preventDefault()
-        navigateTo("empleados")
-        break
-      case "3":
-        e.preventDefault()
-        navigateTo("nomina")
-        break
-      case "4":
-        e.preventDefault()
-        navigateTo("vacaciones")
-        break
-    }
-  }
-  if (e.key === "Escape") {
-    document.querySelectorAll(".modal.active").forEach((m) => closeModal(m.id))
-  }
+function actualizarAnalytics() {
+  // Placeholder (tu gráfico real iría aquí)
 }
 
-// Utilidades
-function formatearFecha(fecha) {
-  const d = new Date(fecha)
-  return d.toLocaleDateString("es-DO", { year: "numeric", month: "short", day: "numeric" })
-}
-
-// Datos de ejemplo (solo si no hay datos y falla la carga del JSON)
+// Datos de ejemplo de respaldo
 function cargarDatosEjemplo() {
-  console.log("⚠️ Cargando datos de ejemplo como respaldo...")
-
   empleados = [
     {
       id: 1,
-      nombre: "María González Pérez",
+      nombre: "Ana Pérez",
       cedula: "001-1234567-8",
-      fechaNacimiento: "1990-05-15",
-      telefono: "809-555-0123",
-      email: "maria.gonzalez@empresa.com",
-      direccion: "Av. 27 de Febrero #123, Santo Domingo",
+      fechaNacimiento: "1994-05-12",
+      telefono: "+1 809-555-0001",
+      email: "ana.perez@empresa.com",
+      direccion: "Calle 1 #23",
       departamento: "Tecnología",
-      puesto: "Desarrolladora Senior",
-      profesion: "Ingeniera en Sistemas",
-      sueldoBase: 85000,
-      fechaIngreso: "2020-01-15",
+      puesto: "Desarrollador/a Backend",
+      profesion: "Ing. en Sistemas",
+      sueldoBase: 55000,
+      fechaIngreso: "2023-03-01",
       estado: "Activo",
       fechaRegistro: new Date().toISOString(),
     },
     {
       id: 2,
-      nombre: "Carlos Rodríguez Martínez",
-      cedula: "001-2345678-9",
-      fechaNacimiento: "1985-08-22",
-      telefono: "809-555-0124",
-      email: "carlos.rodriguez@empresa.com",
-      direccion: "Calle Mercedes #456, Santiago",
-      departamento: "Ventas",
-      puesto: "Gerente de Ventas",
-      profesion: "Licenciado en Marketing",
-      sueldoBase: 95000,
-      fechaIngreso: "2019-03-10",
-      estado: "Activo",
-      fechaRegistro: new Date().toISOString(),
-    },
-    {
-      id: 3,
-      nombre: "Ana Lucía Fernández",
-      cedula: "001-3456789-0",
-      fechaNacimiento: "1992-12-03",
-      telefono: "809-555-0125",
-      email: "ana.fernandez@empresa.com",
-      direccion: "Av. Winston Churchill #789, Santo Domingo",
+      nombre: "Luis Gómez",
+      cedula: "001-7654321-0",
+      fechaNacimiento: "1989-09-20",
+      telefono: "+1 809-555-0002",
+      email: "luis.gomez@empresa.com",
+      direccion: "Av. Principal 100",
       departamento: "Recursos Humanos",
-      puesto: "Especialista en RRHH",
-      profesion: "Licenciada en Psicología",
-      sueldoBase: 65000,
-      fechaIngreso: "2021-06-01",
+      puesto: "RRHH Generalista",
+      profesion: "Psicólogo/a Organizacional",
+      sueldoBase: 42000,
+      fechaIngreso: "2022-07-15",
       estado: "Activo",
       fechaRegistro: new Date().toISOString(),
     },
@@ -1266,168 +1153,28 @@ function cargarDatosEjemplo() {
 
   solicitudesVacaciones = [
     {
-      id: 1,
+      id: 101,
       empleadoId: 1,
-      fechaInicio: "2024-12-20",
-      fechaFin: "2024-12-30",
-      dias: 11,
-      motivo: "Vacaciones de fin de año con la familia",
+      fechaInicio: "2025-09-01",
+      fechaFin: "2025-09-10",
+      dias: 10,
+      motivo: "Vacaciones anuales",
       estado: "Pendiente",
-      fechaSolicitud: new Date().toISOString(),
+      fechaSolicitud: "2025-08-15",
+      decisionMotivo: null,
+      decisionFecha: null,
     },
     {
-      id: 2,
+      id: 102,
       empleadoId: 2,
-      fechaInicio: "2024-11-15",
-      fechaFin: "2024-11-20",
-      dias: 6,
-      motivo: "Viaje de negocios y descanso personal",
+      fechaInicio: "2025-08-25",
+      fechaFin: "2025-08-28",
+      dias: 4,
+      motivo: "Asuntos personales",
       estado: "Aprobado",
-      fechaSolicitud: new Date(Date.now() - 86400000).toISOString(),
+      fechaSolicitud: "2025-08-10",
+      decisionMotivo: "Cubre plan de vacaciones anual",
+      decisionFecha: "2025-08-12",
     },
   ]
 }
-
-// Analytics y gráficos
-function actualizarAnalytics() {
-  if (paginaActual !== "analytics") return
-
-  // Gráfico de crecimiento de empleados
-  actualizarGraficoCrecimiento()
-
-  // Gráfico de distribución salarial
-  actualizarGraficoDistribucionSalarial()
-
-  // Gráfico de tendencias de vacaciones
-  actualizarGraficoTendenciasVacaciones()
-}
-
-function actualizarGraficoCrecimiento() {
-  const container = document.querySelector("#analytics .analytics-card:nth-child(1) .chart-placeholder")
-  if (!container) return
-
-  const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun"]
-  const datos = [2, 3, 4, 5, empleados.length - 1, empleados.length]
-
-  container.innerHTML = `
-    <div class="simple-chart">
-      <div class="chart-title">Empleados por mes</div>
-      <div class="chart-bars">
-        ${meses
-          .map(
-            (mes, i) => `
-          <div class="chart-bar-group">
-            <div class="chart-bar" style="height: ${(datos[i] / Math.max(...datos)) * 100}%"></div>
-            <span class="chart-label">${mes}</span>
-            <span class="chart-value">${datos[i]}</span>
-          </div>
-        `,
-          )
-          .join("")}
-      </div>
-    </div>
-  `
-}
-
-function actualizarGraficoDistribucionSalarial() {
-  const container = document.querySelector("#analytics .analytics-card:nth-child(2) .chart-placeholder")
-  if (!container) return
-
-  const rangos = {
-    "Menos de 50K": empleados.filter((e) => e.sueldoBase < 50000).length,
-    "50K - 75K": empleados.filter((e) => e.sueldoBase >= 50000 && e.sueldoBase < 75000).length,
-    "75K - 100K": empleados.filter((e) => e.sueldoBase >= 75000 && e.sueldoBase < 100000).length,
-    "Más de 100K": empleados.filter((e) => e.sueldoBase >= 100000).length,
-  }
-
-  const total = Object.values(rangos).reduce((a, b) => a + b, 0)
-
-  container.innerHTML = `
-    <div class="simple-chart">
-      <div class="chart-title">Distribución Salarial</div>
-      <div class="pie-chart">
-        ${Object.entries(rangos)
-          .map(([rango, cantidad]) => {
-            const porcentaje = total > 0 ? ((cantidad / total) * 100).toFixed(1) : 0
-            return `
-            <div class="pie-segment">
-              <span class="pie-label">${rango}</span>
-              <span class="pie-value">${cantidad} (${porcentaje}%)</span>
-            </div>
-          `
-          })
-          .join("")}
-      </div>
-    </div>
-  `
-}
-
-function actualizarGraficoTendenciasVacaciones() {
-  const container = document.querySelector("#analytics .analytics-card:nth-child(3) .chart-placeholder")
-  if (!container) return
-
-  const estados = {
-    Pendientes: solicitudesVacaciones.filter((s) => s.estado === "Pendiente").length,
-    Aprobadas: solicitudesVacaciones.filter((s) => s.estado === "Aprobado").length,
-    Rechazadas: solicitudesVacaciones.filter((s) => s.estado === "Rechazado").length,
-  }
-
-  container.innerHTML = `
-    <div class="simple-chart">
-      <div class="chart-title">Estado de Solicitudes de Vacaciones</div>
-      <div class="chart-stats">
-        ${Object.entries(estados)
-          .map(
-            ([estado, cantidad]) => `
-          <div class="stat-item-chart">
-            <div class="stat-circle ${estado.toLowerCase()}"></div>
-            <span class="stat-label-chart">${estado}</span>
-            <span class="stat-number-chart">${cantidad}</span>
-          </div>
-        `,
-          )
-          .join("")}
-      </div>
-    </div>
-  `
-}
-
-// Función para exportar datos actuales a JSON (para desarrollo)
-function exportarDatosJSON() {
-  const datosCompletos = {
-    empleados: empleados,
-    solicitudesVacaciones: solicitudesVacaciones,
-    configuracion: configuracion,
-  }
-
-  const blob = new Blob([JSON.stringify(datosCompletos, null, 2)], { type: "application/json" })
-  const url = window.URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = `hrpro_backup_${new Date().toISOString().split("T")[0]}.json`
-  a.click()
-  window.URL.revokeObjectURL(url)
-
-  showToast("Backup creado", "Los datos han sido exportados a JSON", "success")
-}
-
-// Manejo de errores globales
-window.addEventListener("error", (e) => {
-  console.error("Error en la aplicación:", e.error || e.message)
-  showToast("Error del sistema", "Ha ocurrido un error inesperado", "error")
-})
-
-// Prevenir pérdida de datos (informativo)
-window.addEventListener("beforeunload", (e) => {
-  if (empleados.length > 0 || solicitudesVacaciones.length > 0) {
-    e.preventDefault()
-    e.returnValue = "¿Estás seguro de que deseas salir? Los datos no guardados se perderán."
-  }
-})
-
-// Logs de inicialización
-console.log("🎯 HRPro - Sistema de Gestión de Empleados")
-console.log("✅ Sistema optimizado para GitHub Pages")
-console.log("📁 Carga de datos desde JSON habilitada")
-console.log("💾 Persistencia local con localStorage")
-console.log("🔐 Usuarios demo: admin/admin123, supervisor/super123, empleado/emp123")

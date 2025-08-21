@@ -163,7 +163,7 @@
         <div class="header-actions">
           <button class="btn-icon" id="notificationsBtn">
             <i class="fas fa-bell"></i>
-            <span class="notification-dot"></span>
+            <span class="notification-dot"></"></span>
           </button>
           <button class="btn-icon" id="searchBtn">
             <i class="fas fa-search"></i>
@@ -454,14 +454,15 @@
                 <th>Fecha Inicio</th>
                 <th>Fecha Fin</th>
                 <th>Días</th>
-                <th>Motivo</th>
+                <th>Motivo (Solicitud)</th>
                 <th>Estado</th>
+                <th>Motivo (Decisión)</th>
                 <th id="accionesHeader">Acciones</th>
               </tr>
             </thead>
             <tbody id="vacacionesTableBody">
               <tr class="empty-row">
-                <td colspan="7">
+                <td colspan="8">
                   <div class="empty-state">
                     <i class="fas fa-calendar-alt"></i>
                     <h6>No hay solicitudes de vacaciones</h6>
@@ -724,15 +725,63 @@
             <h6>Información Laboral</h6>
             <div class="form-group">
               <label>Departamento *</label>
-              <input type="text" id="empDepartamento" required/>
+              <select id="empDepartamento" required>
+                <option value="">Seleccionar...</option>
+                <option value="Tecnología">Tecnología</option>
+                <option value="Recursos Humanos">Recursos Humanos</option>
+                <option value="Finanzas">Finanzas</option>
+                <option value="Contabilidad">Contabilidad</option>
+                <option value="Ventas">Ventas</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Operaciones">Operaciones</option>
+                <option value="Soporte">Soporte</option>
+                <option value="Logística">Logística</option>
+                <option value="Legal">Legal</option>
+                <option value="Compras">Compras</option>
+                <option value="Administración">Administración</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Puesto *</label>
-              <input type="text" id="empPuesto" required/>
+              <select id="empPuesto" required>
+                <option value="">Seleccionar...</option>
+                <option value="Desarrollador/a Backend">Desarrollador/a Backend</option>
+                <option value="Desarrollador/a Frontend">Desarrollador/a Frontend</option>
+                <option value="Full Stack Developer">Full Stack Developer</option>
+                <option value="Analista de Datos">Analista de Datos</option>
+                <option value="Soporte Técnico">Soporte Técnico</option>
+                <option value="QA Tester">QA Tester</option>
+                <option value="Diseñador/a UX/UI">Diseñador/a UX/UI</option>
+                <option value="Gerente de Proyecto">Gerente de Proyecto</option>
+                <option value="Administrador/a de Sistemas">Administrador/a de Sistemas</option>
+                <option value="RRHH Generalista">RRHH Generalista</option>
+                <option value="Contador/a">Contador/a</option>
+                <option value="Ejecutivo/a de Ventas">Ejecutivo/a de Ventas</option>
+                <option value="Representante de Servicio">Representante de Servicio</option>
+                <option value="Coordinador/a de Operaciones">Coordinador/a de Operaciones</option>
+                <option value="Gerente">Gerente</option>
+                <option value="Director/a">Director/a</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Profesión *</label>
-              <input type="text" id="empProfesion" required/>
+              <select id="empProfesion" required>
+                <option value="">Seleccionar...</option>
+                <option value="Ing. en Sistemas">Ing. en Sistemas</option>
+                <option value="Lic. en Informática">Lic. en Informática</option>
+                <option value="Téc. en Soporte">Téc. en Soporte</option>
+                <option value="Desarrollador/a Web">Desarrollador/a Web</option>
+                <option value="Analista de Datos">Analista de Datos</option>
+                <option value="QA Tester">QA Tester</option>
+                <option value="Diseñador/a Gráfico">Diseñador/a Gráfico</option>
+                <option value="Ing. Industrial">Ing. Industrial</option>
+                <option value="Contador Público">Contador Público</option>
+                <option value="Lic. en Administración">Lic. en Administración</option>
+                <option value="Mercadólogo/a">Mercadólogo/a</option>
+                <option value="Abogado/a">Abogado/a</option>
+                <option value="Psicólogo/a Organizacional">Psicólogo/a Organizacional</option>
+                <option value="Administrador/a de Redes">Administrador/a de Redes</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Sueldo Base *</label>
@@ -809,6 +858,34 @@
       <button class="btn-primary" onclick="guardarVacaciones()">
         <i class="fas fa-paper-plane"></i>
         Enviar Solicitud
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Decisión (Aprobar/Rechazar) -->
+<div id="decisionModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 id="decisionModalTitle">Decisión de Solicitud</h5>
+      <button class="modal-close" onclick="closeModal('decisionModal')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="decisionForm">
+        <input type="hidden" id="decisionSolicitudId"/>
+        <input type="hidden" id="decisionAccion"/> <!-- Aprobado/Rechazado -->
+        <div class="form-group">
+          <label id="decisionLabel">Motivo de la decisión *</label>
+          <textarea id="decisionMotivo" rows="4" required placeholder="Escribe el motivo..."></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('decisionModal')">Cancelar</button>
+      <button class="btn-primary" onclick="confirmarDecision()">
+        <i class="fas fa-check"></i> Confirmar
       </button>
     </div>
   </div>

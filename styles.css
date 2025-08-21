@@ -2206,3 +2206,61 @@ textarea:focus-visible {
     --shadow-lg: 0 0 0 3px var(--gray-900);
   }
 }
+
+/* === PATCH: Texto blanco global en modo oscuro (app + modales) === */
+.main-app,
+.main-app * ,
+.modal,
+.modal * {
+  color: #fff !important;
+}
+
+/* Placeholders en formularios */
+.main-app input::placeholder,
+.main-app textarea::placeholder {
+  color: rgba(255,255,255,.65) !important;
+}
+
+/* Asegurar texto de badges y contadores en blanco */
+.status-badge,
+.stat-number,
+.stat-label,
+.stat-change,
+.pie-value,
+.pie-label,
+.chart-label,
+.chart-value {
+  color: #fff !important;
+}
+
+/* === PATCH: texto negro en campos de formulario (inputs/selects/textarea) === */
+.main-app input,
+.main-app select,
+.main-app textarea,
+.modal input,
+.modal select,
+.modal textarea {
+  color: #111 !important;              /* texto negro */
+  background-color: #fff !important;   /* fondo claro consistente */
+}
+
+/* Opciones del <select> (lista desplegable) */
+.main-app option,
+.modal option {
+  color: #111 !important;
+}
+
+/* Placeholder de inputs/textarea */
+.main-app input::placeholder,
+.main-app textarea::placeholder,
+.modal input::placeholder,
+.modal textarea::placeholder {
+  color: #6b7280 !important; /* gris 500 */
+}
+
+/* Texto del option “Seleccionar...” (si lo dejas como placeholder) */
+.main-app select option[disabled],
+.modal select option[disabled] {
+  color: #6b7280 !important;
+}
+
